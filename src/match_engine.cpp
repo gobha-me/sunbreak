@@ -21,10 +21,10 @@ constexpr std::array<PoseLandmarks, 8> kPoseTable{{
      {0.48, 0.56},
      {0.52, 0.75},
      {0.50, 0.90},
-     {0.50, 0.37, 0.068},
-     {0.57, 0.37, 0.068},
-     {0.46, 0.56, 0.075},
-     {0.53, 0.56, 0.075},
+     {0.500, 0.375, 0.052},
+     {0.565, 0.375, 0.052},
+     {0.380, 0.525, 0.058},
+     {0.435, 0.530, 0.058},
      {0.34, 0.22, 0.14}},
     {PoseId::Dig,
      "pose_dig",
@@ -37,10 +37,10 @@ constexpr std::array<PoseLandmarks, 8> kPoseTable{{
      {0.38, 0.57},
      {0.54, 0.74},
      {0.51, 0.90},
-     {0.49, 0.41, 0.068},
-     {0.56, 0.41, 0.068},
-     {0.36, 0.57, 0.078},
-     {0.44, 0.57, 0.078},
+     {0.500, 0.378, 0.052},
+     {0.565, 0.378, 0.052},
+     {0.390, 0.525, 0.058},
+     {0.440, 0.530, 0.058},
      {0.31, 0.24, 0.15}},
     {PoseId::Set,
      "pose_set",
@@ -53,10 +53,10 @@ constexpr std::array<PoseLandmarks, 8> kPoseTable{{
      {0.47, 0.59},
      {0.51, 0.76},
      {0.49, 0.90},
-     {0.47, 0.43, 0.068},
-     {0.54, 0.43, 0.068},
-     {0.45, 0.59, 0.075},
-     {0.52, 0.59, 0.075},
+     {0.515, 0.372, 0.052},
+     {0.585, 0.372, 0.052},
+     {0.405, 0.525, 0.058},
+     {0.460, 0.530, 0.058},
      {0.34, 0.28, 0.14}},
     {PoseId::JumpCoil,
      "pose_jump_coil",
@@ -69,10 +69,10 @@ constexpr std::array<PoseLandmarks, 8> kPoseTable{{
      {0.38, 0.58},
      {0.57, 0.73},
      {0.52, 0.89},
-     {0.52, 0.42, 0.068},
-     {0.59, 0.42, 0.068},
-     {0.35, 0.58, 0.078},
-     {0.43, 0.58, 0.078},
+     {0.575, 0.385, 0.052},
+     {0.640, 0.385, 0.052},
+     {0.435, 0.525, 0.058},
+     {0.480, 0.530, 0.058},
      {0.37, 0.22, 0.15}},
     {PoseId::Spike,
      "pose_spike",
@@ -85,10 +85,10 @@ constexpr std::array<PoseLandmarks, 8> kPoseTable{{
      {0.48, 0.56},
      {0.38, 0.73},
      {0.33, 0.86},
-     {0.51, 0.40, 0.068},
-     {0.59, 0.40, 0.068},
-     {0.45, 0.56, 0.076},
-     {0.53, 0.56, 0.076},
+     {0.545, 0.355, 0.052},
+     {0.615, 0.355, 0.052},
+     {0.505, 0.545, 0.058},
+     {0.565, 0.555, 0.058},
      {0.34, 0.22, 0.16}},
     {PoseId::SpikeFollow,
      "pose_spike_follow",
@@ -101,10 +101,10 @@ constexpr std::array<PoseLandmarks, 8> kPoseTable{{
      {0.43, 0.55},
      {0.48, 0.73},
      {0.44, 0.87},
-     {0.54, 0.41, 0.068},
-     {0.61, 0.41, 0.068},
-     {0.40, 0.55, 0.076},
-     {0.48, 0.55, 0.076},
+     {0.515, 0.400, 0.050},
+     {0.545, 0.410, 0.050},
+     {0.345, 0.490, 0.058},
+     {0.400, 0.505, 0.058},
      {0.38, 0.21, 0.16}},
     {PoseId::Dive,
      "pose_dive",
@@ -117,10 +117,10 @@ constexpr std::array<PoseLandmarks, 8> kPoseTable{{
      {0.39, 0.51},
      {0.23, 0.49},
      {0.12, 0.46},
-     {0.54, 0.53, 0.065},
-     {0.60, 0.53, 0.065},
-     {0.37, 0.51, 0.075},
-     {0.43, 0.51, 0.075},
+     {0.595, 0.545, 0.048},
+     {0.630, 0.545, 0.048},
+     {0.440, 0.510, 0.058},
+     {0.485, 0.525, 0.058},
      {0.48, 0.36, 0.15}},
     {PoseId::Closeup,
      "plate_closeup",
@@ -128,15 +128,15 @@ constexpr std::array<PoseLandmarks, 8> kPoseTable{{
      512.0,
      0.0,
      {0.51, 0.23},
-     {0.56, 0.48},
+     {0.62, 0.48},
      {0.67, 0.67},
-     {0.45, 0.77},
+     {0.47, 0.77},
      {0.47, 0.90},
      {0.47, 0.97},
-     {0.51, 0.48, 0.072},
-     {0.62, 0.48, 0.072},
-     {0.40, 0.77, 0.088},
-     {0.52, 0.77, 0.088},
+     {0.575, 0.485, 0.068},
+     {0.675, 0.485, 0.068},
+     {0.430, 0.765, 0.082},
+     {0.515, 0.775, 0.082},
      {0.31, 0.25, 0.16}},
 }};
 
@@ -201,6 +201,7 @@ void SunbreakEngine::reset_match() {
   solar_meter_ = {0.0, 0.0};
   defense_tactic_ = {DefenseTactic::BlockNet, DefenseTactic::PeelDeep};
   tactic_flash_timer_ = {0.0, 0.0};
+  pose_cam_active_ = false;
   demo_freeze_ = false;
   cut_in_timer_ = 0.0;
   cut_in_label_.clear();
@@ -587,10 +588,17 @@ void SunbreakEngine::execute_serve_strike(std::uint8_t slot,
   last_touch_slot_ = static_cast<int>(p.slot);
 
   const double dir = p.team == 0 ? 1.0 : -1.0;
-  const bool is_jump = serve_is_jump_ || p.z > 8.0;
+  const bool is_short_drop = (charge < 0.38);
+  const bool is_jump = (serve_is_jump_ && !is_short_drop) || p.z > 8.0;
   const bool is_sweet_spot = (charge >= 0.75 && charge <= 0.90);
   const bool is_overhit = (charge > 0.90);
-  const bool is_short_drop = (charge < 0.45);
+
+  if (is_jump && p.z < 42.0) {
+    p.z = 42.0;
+    p.vz = std::max(p.vz, 85.0);
+    p.jump_coil_timer = 0.0;
+    p.jump_launch_timer = 0.0;
+  }
 
   const PoseId strike_pose = is_jump ? PoseId::SpikeFollow : PoseId::Set;
   const Vec3 hs = hand_socket_world(p, strike_pose);
@@ -1121,9 +1129,7 @@ void SunbreakEngine::step(double dt,
           ball_.y = hs.y;
           ball_.z = std::max(22.0, hs.z - 6.0);
 
-          if (input.btn_a) {
-            start_serve_toss(p.slot, false);
-          } else if (input.btn_b) {
+          if (input.btn_a || input.btn_b) {
             start_serve_toss(p.slot, true);
           }
         } else {
@@ -1132,9 +1138,9 @@ void SunbreakEngine::step(double dt,
           ball_.vz -= kCourtGravity * 0.72 * dt;
           ball_.z += ball_.vz * dt;
 
-          if (serve_is_jump_ && serve_charge_ >= 0.30 && p.z == 0.0 &&
-              p.jump_coil_timer <= 0.0) {
-            trigger_keyed_jump(p.slot, 248.0 + prof.jump * 58.0);
+          if (serve_is_jump_ && serve_charge_ >= 0.12 && p.z == 0.0 &&
+              p.jump_coil_timer <= 0.0 && p.jump_launch_timer <= 0.0) {
+            trigger_keyed_jump(p.slot, 265.0 + prof.jump * 60.0);
           }
 
           const bool release_trigger =
@@ -1165,8 +1171,9 @@ void SunbreakEngine::step(double dt,
         p.vx = input.mx * max_spd;
         p.vy = input.my * max_spd * 0.88;
 
-        if ((input.btn_a || input.btn_b) && p.z == 0.0 &&
-            p.jump_coil_timer <= 0.0 && p.jump_launch_timer <= 0.0) {
+        const bool any_action = input.btn_a || input.btn_b || input.btn_dive;
+        if (any_action && p.z == 0.0 && p.jump_coil_timer <= 0.0 &&
+            p.jump_launch_timer <= 0.0) {
           const Vec3 hs_dig = hand_socket_world(p, PoseId::Dive);
           const double dist_ball =
               std::hypot(ball_.x - hs_dig.x, ball_.y - hs_dig.y);
@@ -1180,16 +1187,20 @@ void SunbreakEngine::step(double dt,
             p.active_dig_timer = 0.36;
           }
 
-          const bool want_dive = input.btn_b && on_defense && ball_.z < 76.0 &&
-                                 dist_ball > 20.0 && dist_ball < 145.0 &&
-                                 (std::abs(input.mx) > 0.1 ||
-                                  std::abs(input.my) > 0.1 || !near_net);
+          const bool ai_dive = p.is_ai && input.btn_b && on_defense &&
+                               ball_.z < 76.0 && dist_ball > 20.0 &&
+                               dist_ball < 145.0 && !near_net;
+          const bool want_dive = input.btn_dive || ai_dive;
           const bool want_counter_dig =
-              (input.btn_a || input.btn_b) && on_defense && !near_net;
+              input.btn_a && (!near_net || on_defense);
 
           if (want_dive) {
-            const double dx = ball_.x - hs_dig.x;
-            const double dy = ball_.y - hs_dig.y;
+            const double dx =
+                dist_ball > 8.0 ? (ball_.x - hs_dig.x)
+                                : (std::abs(input.mx) > 0.1 ? input.mx * 100.0
+                                                            : p.facing * 100.0);
+            const double dy =
+                dist_ball > 8.0 ? (ball_.y - hs_dig.y) : (input.my * 100.0);
             const double d = std::max(1.0, std::hypot(dx, dy));
             p.vx = (dx / d) * 410.0;
             p.vy = (dy / d) * 340.0;
@@ -1200,15 +1211,20 @@ void SunbreakEngine::step(double dt,
             apply_action_impulse(p, "dive", 1.35);
             add_crater(p.x, p.y, 26.0);
           } else if (want_counter_dig) {
-            p.action_state = ActionState::Dig;
+            p.action_state = on_defense ? ActionState::Dig : ActionState::Set;
             p.action_timer = 0.34;
-            apply_action_impulse(p, "dig", 1.15);
+            apply_action_impulse(p, on_defense ? "dig" : "set", 1.15);
           } else if (p.jump_cooldown <= 0.0) {
             if (p.is_ai) {
               p.jump_cooldown = 0.72;
             }
             trigger_keyed_jump(p.slot, 248.0 + prof.jump * 62.0);
           }
+        } else if ((input.btn_a || input.btn_b) && p.z > 8.0) {
+          // Manual airborne spike swing!
+          p.action_state = ActionState::SpikeFollow;
+          p.action_timer = 0.32;
+          apply_action_impulse(p, "spike", 1.35);
         }
       }
 
@@ -1227,10 +1243,11 @@ void SunbreakEngine::step(double dt,
       const Vec3 hs = hand_socket_world(p, active_pose);
       const double dist_xy = std::hypot(ball_.x - hs.x, ball_.y - hs.y);
       const double dist_z = std::abs(ball_.z - hs.z);
-      const double hit_r_xy = p.action_state == ActionState::Dive
-                                  ? 54.0
-                                  : (p.active_dig_timer > 0.0 ? 48.0 : 42.0);
-      const double hit_r_z = p.z > 14.0 ? 44.0 : 38.0;
+      const double hit_r_xy =
+          p.action_state == ActionState::Dive
+              ? 58.0
+              : (p.z > 14.0 ? 54.0 : (p.active_dig_timer > 0.0 ? 50.0 : 44.0));
+      const double hit_r_z = p.z > 14.0 ? 52.0 : 40.0;
 
       if (dist_xy < hit_r_xy && dist_z < hit_r_z &&
           last_touch_slot_ != static_cast<int>(p.slot)) {

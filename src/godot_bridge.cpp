@@ -73,12 +73,25 @@ class SunbreakMatch final : public godot::RefCounted {
                                            : to_gd_str("peel");
   }
 
+  void set_lighting_theme(std::int64_t theme_idx) {
+    const auto clamped = std::clamp<std::int64_t>(theme_idx, 0, 2);
+    engine_.set_lighting_theme(static_cast<LightingTheme>(clamped));
+  }
+
+  void set_pose_cam_active(bool active) { engine_.set_pose_cam_active(active); }
+
+  void set_physics_preset(std::int64_t preset_idx) {
+    const auto clamped = std::clamp<std::int64_t>(preset_idx, 0, 2);
+    engine_.set_physics_preset(static_cast<PhysicsPreset>(clamped));
+  }
+
   void step_frame(double dt, const godot::Dictionary& p0_input) {
     std::array<PlayerInput, 4> inputs{};
     inputs.at(0).mx = static_cast<double>(p0_input.get("mx", 0.0));
     inputs.at(0).my = static_cast<double>(p0_input.get("my", 0.0));
     inputs.at(0).btn_a = static_cast<bool>(p0_input.get("btn_a", false));
     inputs.at(0).btn_b = static_cast<bool>(p0_input.get("btn_b", false));
+    inputs.at(0).btn_dive = static_cast<bool>(p0_input.get("btn_dive", false));
     inputs.at(0).hold_a = static_cast<bool>(p0_input.get("hold_a", false));
     inputs.at(0).hold_b = static_cast<bool>(p0_input.get("hold_b", false));
     inputs.at(0).btn_switch =
@@ -143,6 +156,7 @@ class SunbreakMatch final : public godot::RefCounted {
     bd["trail"] = b_trail;
     d["ball"] = bd;
 
+    const auto& lm_closeup = pose_landmarks(PoseId::Closeup);
     godot::Array p_arr;
     for (const auto& p : engine_.players()) {
       const auto& prof = kRoster.at(p.roster_index % kRoster.size());
@@ -194,6 +208,11 @@ class SunbreakMatch final : public godot::RefCounted {
       pd["zone_hip_l"] = to_gd_zone(lm.hip_l);
       pd["zone_hip_r"] = to_gd_zone(lm.hip_r);
       pd["zone_hair"] = to_gd_zone(lm.hair);
+      pd["closeup_zone_bust_l"] = to_gd_zone(lm_closeup.bust_l);
+      pd["closeup_zone_bust_r"] = to_gd_zone(lm_closeup.bust_r);
+      pd["closeup_zone_hip_l"] = to_gd_zone(lm_closeup.hip_l);
+      pd["closeup_zone_hip_r"] = to_gd_zone(lm_closeup.hip_r);
+      pd["closeup_zone_hair"] = to_gd_zone(lm_closeup.hair);
 
       godot::Dictionary sk;
       sk["root_offset"] = to_gd_vec2(p.skeleton.root_offset);
@@ -249,6 +268,15 @@ class SunbreakMatch final : public godot::RefCounted {
     godot::ClassDB::bind_method(
         godot::D_METHOD("toggle_partner_tactic", "team"),
         &SunbreakMatch::toggle_partner_tactic);
+    godot::ClassDB::bind_method(
+        godot::D_METHOD("set_lighting_theme", "theme_idx"),
+        &SunbreakMatch::set_lighting_theme);
+    godot::ClassDB::bind_method(
+        godot::D_METHOD("set_pose_cam_active", "active"),
+        &SunbreakMatch::set_pose_cam_active);
+    godot::ClassDB::bind_method(
+        godot::D_METHOD("set_physics_preset", "preset_idx"),
+        &SunbreakMatch::set_physics_preset);
     godot::ClassDB::bind_method(godot::D_METHOD("step_frame", "dt", "p0_input"),
                                 &SunbreakMatch::step_frame);
     godot::ClassDB::bind_method(godot::D_METHOD("get_snapshot"),

@@ -3,10 +3,10 @@ shader_type canvas_item;
 uniform sampler2D u_tex_normal : filter_linear;
 uniform float u_flip = 1.0;
 uniform vec2 u_prop_scale = vec2(1.12, 1.10);
-uniform vec3 u_zone_bust_l = vec3(0.50, 0.37, 0.068);
-uniform vec3 u_zone_bust_r = vec3(0.57, 0.37, 0.068);
-uniform vec3 u_zone_hip_l = vec3(0.46, 0.56, 0.075);
-uniform vec3 u_zone_hip_r = vec3(0.53, 0.56, 0.075);
+uniform vec3 u_zone_bust_l = vec3(0.500, 0.375, 0.052);
+uniform vec3 u_zone_bust_r = vec3(0.565, 0.375, 0.052);
+uniform vec3 u_zone_hip_l = vec3(0.380, 0.525, 0.058);
+uniform vec3 u_zone_hip_r = vec3(0.435, 0.530, 0.058);
 uniform vec3 u_zone_hair = vec3(0.34, 0.22, 0.14);
 
 uniform vec2 u_disp_bust_l = vec2(0.0);
@@ -47,10 +47,11 @@ void apply_soft_zone(
 		float w = (1.0 - r2);
 		w = w * w;
 		weight_out = w;
+		vec2 fdisp = vec2(disp.x * u_flip, disp.y);
 		float radial_scale = 1.0 - (scale_boost - 1.0) * 0.42 * w;
 		vec2 scaled_uv = zone.xy + (uv - zone.xy) * radial_scale;
-		warped_uv += (scaled_uv - uv) - disp * w;
-		normal_tilt += disp * w * 5.8 + (uv - zone.xy) * (scale_boost - 1.0) * w * 2.5;
+		warped_uv += (scaled_uv - uv) - fdisp * w;
+		normal_tilt += fdisp * w * 5.8 + (uv - zone.xy) * (scale_boost - 1.0) * w * 2.5;
 	}
 }
 

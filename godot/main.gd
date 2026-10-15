@@ -310,11 +310,18 @@ func _update_rig_from_player(rig: Dictionary, p: Dictionary, theme_idx: int, is_
 	mat.set_shader_parameter("u_tex_normal", nrm_tex)
 	mat.set_shader_parameter("u_flip", facing)
 	mat.set_shader_parameter("u_prop_scale", Vector2(float(p.get("bust_scale", 1.1)), float(p.get("hip_scale", 1.1))))
-	mat.set_shader_parameter("u_zone_bust_l", p.get("zone_bust_l", Vector3(0.50, 0.37, 0.068)))
-	mat.set_shader_parameter("u_zone_bust_r", p.get("zone_bust_r", Vector3(0.57, 0.37, 0.068)))
-	mat.set_shader_parameter("u_zone_hip_l", p.get("zone_hip_l", Vector3(0.46, 0.56, 0.075)))
-	mat.set_shader_parameter("u_zone_hip_r", p.get("zone_hip_r", Vector3(0.53, 0.56, 0.075)))
-	mat.set_shader_parameter("u_zone_hair", p.get("zone_hair", Vector3(0.34, 0.22, 0.14)))
+	if is_closeup and pose_key == "plate_closeup":
+		mat.set_shader_parameter("u_zone_bust_l", p.get("closeup_zone_bust_l", Vector3(0.575, 0.485, 0.068)))
+		mat.set_shader_parameter("u_zone_bust_r", p.get("closeup_zone_bust_r", Vector3(0.675, 0.485, 0.068)))
+		mat.set_shader_parameter("u_zone_hip_l", p.get("closeup_zone_hip_l", Vector3(0.430, 0.765, 0.082)))
+		mat.set_shader_parameter("u_zone_hip_r", p.get("closeup_zone_hip_r", Vector3(0.515, 0.775, 0.082)))
+		mat.set_shader_parameter("u_zone_hair", p.get("closeup_zone_hair", Vector3(0.31, 0.25, 0.16)))
+	else:
+		mat.set_shader_parameter("u_zone_bust_l", p.get("zone_bust_l", Vector3(0.500, 0.375, 0.052)))
+		mat.set_shader_parameter("u_zone_bust_r", p.get("zone_bust_r", Vector3(0.565, 0.375, 0.052)))
+		mat.set_shader_parameter("u_zone_hip_l", p.get("zone_hip_l", Vector3(0.380, 0.525, 0.058)))
+		mat.set_shader_parameter("u_zone_hip_r", p.get("zone_hip_r", Vector3(0.435, 0.530, 0.058)))
+		mat.set_shader_parameter("u_zone_hair", p.get("zone_hair", Vector3(0.34, 0.22, 0.14)))
 	mat.set_shader_parameter("u_disp_bust_l", dbl)
 	mat.set_shader_parameter("u_disp_bust_r", dbr)
 	mat.set_shader_parameter("u_disp_hip_l", dhl)
@@ -362,7 +369,7 @@ func apply_snapshot(snap: Dictionary) -> void:
 		_update_rig_from_player(athlete_rigs[i], p, theme_idx, false)
 
 	if players.size() > 0:
-		var show_studio := bool(snap.get("pose_cam_active", true)) or float(snap.get("cut_in_timer", 0.0)) > 0.0
+		var show_studio := bool(snap.get("pose_cam_active", false)) or float(snap.get("cut_in_timer", 0.0)) > 0.0
 		closeup_panel.visible = show_studio
 		if show_studio:
 			_update_rig_from_player(closeup_rig, players[0], theme_idx, true)
@@ -379,33 +386,51 @@ func apply_snapshot(snap: Dictionary) -> void:
 var prev_j := false
 var prev_k := false
 var prev_l := false
-
-func _unhandled_key_input(event: InputEvent) -> void:
-	if match_bridge == null:
-		return
-	if event is InputEventKey and event.pressed and not event.echo:
-		var k: InputEventKey = event
-		if k.keycode == KEY_P:
-			var cur := bool(last_snapshot.get("pose_cam_active", true))
-			match_bridge.set_pose_cam_active(not cur)
-		elif k.keycode == KEY_1:
-			match_bridge.set_lighting_theme(0)
-		elif k.keycode == KEY_2:
-			match_bridge.set_lighting_theme(1)
-		elif k.keycode == KEY_3:
-			match_bridge.set_lighting_theme(2)
-		elif k.keycode == KEY_F1 or k.keycode == KEY_R:
-			match_bridge.reset_match()
-			match_bridge.set_pose_cam_active(true)
-		elif k.keycode == KEY_F2:
-			apply_preset("sunset_pose")
-		elif k.keycode == KEY_F3:
-			apply_preset("neon_deuce")
+var prev_sw := false
+var prev_p := false
+var prev_1 := false
+var prev_2 := false
+var prev_3 := false
+var prev_f1 := false
+var prev_f2 := false
+var prev_f3 := false
 
 func _process(delta: float) -> void:
 	elapsed_time += delta
 	if match_bridge == null:
 		return
+
+	var key_p := Input.is_key_pressed(KEY_P)
+	var key_1 := Input.is_key_pressed(KEY_1) or Input.is_key_pressed(KEY_KP_1)
+	var key_2 := Input.is_key_pressed(KEY_2) or Input.is_key_pressed(KEY_KP_2)
+	var key_3 := Input.is_key_pressed(KEY_3) or Input.is_key_pressed(KEY_KP_3)
+	var key_f1 := Input.is_key_pressed(KEY_F1) or Input.is_key_pressed(KEY_R)
+	var key_f2 := Input.is_key_pressed(KEY_F2)
+	var key_f3 := Input.is_key_pressed(KEY_F3)
+
+	if key_p and not prev_p:
+		var cur := bool(last_snapshot.get("pose_cam_active", false))
+		match_bridge.set_pose_cam_active(not cur)
+	if key_1 and not prev_1:
+		match_bridge.set_lighting_theme(0)
+	if key_2 and not prev_2:
+		match_bridge.set_lighting_theme(1)
+	if key_3 and not prev_3:
+		match_bridge.set_lighting_theme(2)
+	if key_f1 and not prev_f1:
+		match_bridge.reset_match()
+	if key_f2 and not prev_f2:
+		apply_preset("sunset_pose")
+	if key_f3 and not prev_f3:
+		apply_preset("neon_deuce")
+
+	prev_p = key_p
+	prev_1 = key_1
+	prev_2 = key_2
+	prev_3 = key_3
+	prev_f1 = key_f1
+	prev_f2 = key_f2
+	prev_f3 = key_f3
 
 	var mx := Input.get_axis("ui_left", "ui_right")
 	if Input.is_key_pressed(KEY_A):
@@ -421,23 +446,32 @@ func _process(delta: float) -> void:
 		my += 1.0
 	my = clampf(my, -1.0, 1.0)
 
-	var hold_a := Input.is_action_pressed("ui_accept") or Input.is_key_pressed(KEY_J) or Input.is_key_pressed(KEY_SPACE)
-	var hold_b := Input.is_key_pressed(KEY_K) or Input.is_key_pressed(KEY_Z)
-	var hold_l := Input.is_key_pressed(KEY_L) or Input.is_key_pressed(KEY_X)
+	# Ergonomic QWERTY Right-Hand Home Row:
+	# [J / Space] = Serve / Pass / Set / Dig
+	# [K]         = Jump-Spike / Jump-Block (4-Stage Jump Chain)
+	# [L]         = Diving Save (Horizontal Layout Dive)
+	# [; / Tab]   = Partner Tactic (BLOCK NET <-> PEEL DEEP)
+	var hold_a := Input.is_key_pressed(KEY_J) or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_Z)
+	var hold_b := Input.is_key_pressed(KEY_K) or Input.is_key_pressed(KEY_X)
+	var hold_dive := Input.is_key_pressed(KEY_L) or Input.is_key_pressed(KEY_C)
+	var hold_sw := Input.is_key_pressed(KEY_SEMICOLON) or Input.is_key_pressed(KEY_TAB) or Input.is_key_pressed(KEY_U)
 
-	var btn_a := (hold_a and not prev_j) or Input.is_action_just_pressed("ui_accept")
+	var btn_a := hold_a and not prev_j
 	var btn_b := hold_b and not prev_k
-	var btn_switch := hold_l and not prev_l
+	var btn_dive := hold_dive and not prev_l
+	var btn_switch := hold_sw and not prev_sw
 
 	prev_j = hold_a
 	prev_k = hold_b
-	prev_l = hold_l
+	prev_l = hold_dive
+	prev_sw = hold_sw
 
 	var p0_in := {
 		"mx": mx,
 		"my": my,
 		"btn_a": btn_a,
 		"btn_b": btn_b,
+		"btn_dive": btn_dive,
 		"hold_a": hold_a,
 		"hold_b": hold_b,
 		"btn_switch": btn_switch,
@@ -576,7 +610,8 @@ func _draw_hud(canvas: Node2D) -> void:
 		canvas.draw_circle(mid + Vector2(14.0, 12.0) + dhr * 1.5, 4.5, Color(0.20, 0.83, 0.60))
 
 	# 7. Bottom Controls Legend Bar
-	canvas.draw_rect(Rect2(140.0, 686.0, 1000.0, 26.0), Color(0.03, 0.06, 0.12, 0.86), true)
-	canvas.draw_rect(Rect2(140.0, 686.0, 1000.0, 26.0), Color(0.17, 0.90, 1.0, 0.35), false, 1.0)
-	canvas.draw_string(font, Vector2(158.0, 703.0), "[WASD/ARROWS] Move   [J / SPACE] Toss / Serve / Dig   [K / Z] Jump-Spike / Dive   [L] Partner Tactic   [P] Studio Cam   [1/2/3] Theme   [F1/F2/F3] Live / Presets", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.84, 0.92, 0.98))
+	canvas.draw_rect(Rect2(130.0, 686.0, 1020.0, 26.0), Color(0.03, 0.06, 0.12, 0.86), true)
+	canvas.draw_rect(Rect2(130.0, 686.0, 1020.0, 26.0), Color(0.17, 0.90, 1.0, 0.35), false, 1.0)
+	canvas.draw_string(font, Vector2(146.0, 703.0), "[WASD] Move   [J / SPACE] Jump-Serve / Pass / Dig   [K] Jump-Spike / Block   [L] Dive   [; / TAB] Partner Tactic   [P] Studio Cam   [1/2/3] Theme   [F1/F2/F3] Mode", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.84, 0.92, 0.98))
+
 

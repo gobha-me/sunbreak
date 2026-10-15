@@ -145,6 +145,7 @@ struct PlayerInput {
   double my{0.0};
   bool btn_a{false};
   bool btn_b{false};
+  bool btn_dive{false};
   bool hold_a{false};
   bool hold_b{false};
   bool btn_switch{false};
