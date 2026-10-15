@@ -1,0 +1,12 @@
+build/
+build-*/
+.godot/
+godot/.godot/
+godot/bin/*.so
+godot/bin/*.dylib
+godot/bin/*.dll
+*.import
+*.uid
+compile_commands.json
+.cache/
+AGENTS.override.md

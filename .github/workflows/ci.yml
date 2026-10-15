@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: C++23 Core & Contract Tests (${{ matrix.compiler }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: g++-14
+            cc: gcc-14
+            cxx: g++-14
+          - compiler: clang++-18
+            cc: clang-18
+            cxx: clang++-18
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install compilers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-14 clang-18 cmake ninja-build
+
+      - name: Configure C++23 Core & Tests
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_C_COMPILER=${{ matrix.cc }} \
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSUNBREAK_BUILD_GODOT_BRIDGE=OFF \
+            -DSUNBREAK_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build -j 4
+
+      - name: Run C++23 Contract Suite
+        run: ctest --test-dir build --output-on-failure
