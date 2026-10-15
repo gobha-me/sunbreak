@@ -950,9 +950,11 @@ void SunbreakEngine::handle_ball_contact(PlayerState& p,
     ball_.vx = (att_x - ball_.x) * 1.05;
     ball_.vy = (att_y - ball_.y) * 1.05;
     ball_.vz = 295.0;
-    p.action_state = ActionState::Set;
-    p.action_timer = 0.36;
-    apply_action_impulse(p, "set", 1.15);
+    if (p.dive_lock_timer <= 0.0) {
+      p.action_state = ActionState::Set;
+      p.action_timer = 0.36;
+      apply_action_impulse(p, "set", 1.15);
+    }
     solar_meter_.at(team) = std::min(100.0, solar_meter_.at(team) + 16.0);
   } else {
     // 3rd Touch or Airborne Attack: Spike / Cut-Shot over the net!
@@ -986,9 +988,11 @@ void SunbreakEngine::handle_ball_contact(PlayerState& p,
       ball_.vy = input.my * 95.0;
       ball_.vz = 215.0;
     }
-    p.action_state = airborne ? ActionState::SpikeFollow : ActionState::Set;
-    p.action_timer = 0.38;
-    apply_action_impulse(p, "spike", use_solar ? 1.65 : 1.25);
+    if (p.dive_lock_timer <= 0.0) {
+      p.action_state = airborne ? ActionState::SpikeFollow : ActionState::Set;
+      p.action_timer = 0.38;
+      apply_action_impulse(p, "spike", use_solar ? 1.65 : 1.25);
+    }
   }
 
   predict_ball_landing();
@@ -1103,23 +1107,45 @@ void SunbreakEngine::step(double dt,
     }
 
     if (!p.is_ai && input.btn_switch) {
-      const bool on_def_serve =
-          (rally_state_ == RallyState::Serve && serving_team_ != p.team);
-      const bool on_def_play =
-          (rally_state_ == RallyState::Play && touch_team_ != p.team);
-      if (on_def_serve || on_def_play) {
-        toggle_partner_tactic(p.team);
+      toggle_partner_tactic(p.team);
+    }
+
+    if (p.dive_lock_timer <= 0.0) {
+      const double target_face_x =
+          rally_state_ == RallyState::Serve ? kCourtNetX : ball_.x;
+      if (std::abs(target_face_x - p.x) > 12.0) {
+        p.facing = target_face_x >= p.x ? 1.0 : -1.0;
       }
     }
 
-    const double target_face_x =
-        rally_state_ == RallyState::Serve ? kCourtNetX : ball_.x;
-    if (std::abs(target_face_x - p.x) > 12.0) {
-      p.facing = target_face_x >= p.x ? 1.0 : -1.0;
-    }
-
     if (rally_state_ == RallyState::Serve) {
-      if (p.slot == server_slot_) {
+      if (p.dive_lock_timer > 0.0) {
+        p.dive_lock_timer -= dt;
+        const double slide_drag = std::max(0.0, 1.0 - 2.6 * dt);
+        p.vx *= slide_drag;
+        p.vy *= slide_drag;
+        p.x =
+            std::clamp(p.x + p.vx * dt, kCourtLeftX - 45.0, kCourtNetX - 18.0);
+        p.y = std::clamp(p.y + p.vy * dt, kCourtTopY + 25.0, kCourtBotY - 25.0);
+        p.action_state = ActionState::Dive;
+      } else if (!p.is_ai && input.btn_dive &&
+                 serve_phase_ == ServePhase::Ready) {
+        const bool has_move_dir = std::hypot(input.mx, input.my) > 0.15;
+        const double dx = has_move_dir ? input.mx : p.facing;
+        const double dy = has_move_dir ? input.my : 0.0;
+        const double d = std::max(0.01, std::hypot(dx, dy));
+        p.vx = (dx / d) * 440.0;
+        p.vy = (dy / d) * 350.0;
+        p.vz = 70.0;
+        if (std::abs(dx) > 0.05) {
+          p.facing = dx >= 0.0 ? 1.0 : -1.0;
+        }
+        p.dive_lock_timer = 0.52;
+        p.action_state = ActionState::Dive;
+        p.action_timer = 0.52;
+        apply_action_impulse(p, "dive", 1.45);
+        add_crater(p.x, p.y, 28.0);
+      } else if (p.slot == server_slot_) {
         if (serve_phase_ == ServePhase::Ready) {
           p.vy = input.my * 165.0;
           p.y =
@@ -1162,8 +1188,10 @@ void SunbreakEngine::step(double dt,
 
       if (p.dive_lock_timer > 0.0) {
         p.dive_lock_timer -= dt;
-        p.vx *= 0.92;
-        p.vy *= 0.92;
+        const double slide_drag = std::max(0.0, 1.0 - 2.6 * dt);
+        p.vx *= slide_drag;
+        p.vy *= slide_drag;
+        p.action_state = ActionState::Dive;
       } else {
         const double turbo_boost =
             p.on_fire ? 1.38 : (p.turbo_active ? 1.32 : 1.0);
@@ -1195,21 +1223,34 @@ void SunbreakEngine::step(double dt,
               input.btn_a && (!near_net || on_defense);
 
           if (want_dive) {
+            const bool has_move_dir = std::hypot(input.mx, input.my) > 0.15;
+            const bool ball_on_my_side =
+                (p.team == 0 && ball_landing_.x < kCourtNetX) ||
+                (p.team == 1 && ball_landing_.x >= kCourtNetX);
+            const double aim_tx = ball_on_my_side ? ball_landing_.x : ball_.x;
+            const double aim_ty = ball_on_my_side ? ball_landing_.y : ball_.y;
             const double dx =
-                dist_ball > 8.0 ? (ball_.x - hs_dig.x)
-                                : (std::abs(input.mx) > 0.1 ? input.mx * 100.0
-                                                            : p.facing * 100.0);
+                has_move_dir ? input.mx * 100.0
+                             : (std::hypot(aim_tx - p.x, aim_ty - p.y) > 8.0
+                                    ? (aim_tx - p.x)
+                                    : p.facing * 100.0);
             const double dy =
-                dist_ball > 8.0 ? (ball_.y - hs_dig.y) : (input.my * 100.0);
+                has_move_dir ? input.my * 100.0
+                             : (std::hypot(aim_tx - p.x, aim_ty - p.y) > 8.0
+                                    ? (aim_ty - p.y)
+                                    : 0.0);
             const double d = std::max(1.0, std::hypot(dx, dy));
-            p.vx = (dx / d) * 410.0;
-            p.vy = (dy / d) * 340.0;
-            p.vz = 90.0;
-            p.dive_lock_timer = 0.44;
+            p.vx = (dx / d) * 465.0;
+            p.vy = (dy / d) * 375.0;
+            p.vz = 75.0;
+            if (std::abs(dx) > 4.0) {
+              p.facing = dx >= 0.0 ? 1.0 : -1.0;
+            }
+            p.dive_lock_timer = 0.52;
             p.action_state = ActionState::Dive;
-            p.action_timer = 0.44;
-            apply_action_impulse(p, "dive", 1.35);
-            add_crater(p.x, p.y, 26.0);
+            p.action_timer = 0.52;
+            apply_action_impulse(p, "dive", 1.45);
+            add_crater(p.x, p.y, 28.0);
           } else if (want_counter_dig) {
             p.action_state = on_defense ? ActionState::Dig : ActionState::Set;
             p.action_timer = 0.34;
@@ -1245,9 +1286,9 @@ void SunbreakEngine::step(double dt,
       const double dist_z = std::abs(ball_.z - hs.z);
       const double hit_r_xy =
           p.action_state == ActionState::Dive
-              ? 58.0
+              ? 64.0
               : (p.z > 14.0 ? 54.0 : (p.active_dig_timer > 0.0 ? 50.0 : 44.0));
-      const double hit_r_z = p.z > 14.0 ? 52.0 : 40.0;
+      const double hit_r_z = p.z > 14.0 ? 52.0 : 42.0;
 
       if (dist_xy < hit_r_xy && dist_z < hit_r_z &&
           last_touch_slot_ != static_cast<int>(p.slot)) {
@@ -1290,18 +1331,23 @@ void SunbreakEngine::step(double dt,
         p.z = 0.0;
         p.vz = 0.0;
         p.jump_launch_timer = 0.0;
-        p.jump_cooldown = p.is_ai ? 0.55 : 0.18;
-        p.action_state = ActionState::JumpCoil;
-        p.action_timer = 0.135;
-        apply_action_impulse(p, "land", 1.25);
-        add_crater(p.x, p.y, 20.0);
+        if (p.dive_lock_timer > 0.0) {
+          p.action_state = ActionState::Dive;
+          add_crater(p.x, p.y, 24.0);
+        } else {
+          p.jump_cooldown = p.is_ai ? 0.55 : 0.18;
+          p.action_state = ActionState::JumpCoil;
+          p.action_timer = 0.135;
+          apply_action_impulse(p, "land", 1.25);
+          add_crater(p.x, p.y, 20.0);
+        }
       }
     }
 
     if (p.action_timer > 0.0) {
       p.action_timer -= dt;
       if (p.action_timer <= 0.0 && p.z == 0.0 && p.jump_coil_timer <= 0.0 &&
-          p.jump_launch_timer <= 0.0) {
+          p.jump_launch_timer <= 0.0 && p.dive_lock_timer <= 0.0) {
         p.action_state = ActionState::Idle;
       }
     }
