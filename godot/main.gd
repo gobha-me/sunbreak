@@ -376,21 +376,71 @@ func apply_snapshot(snap: Dictionary) -> void:
 	if hud_layer != null:
 		hud_layer.queue_redraw()
 
+var prev_j := false
+var prev_k := false
+var prev_l := false
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if match_bridge == null:
+		return
+	if event is InputEventKey and event.pressed and not event.echo:
+		var k: InputEventKey = event
+		if k.keycode == KEY_P:
+			var cur := bool(last_snapshot.get("pose_cam_active", true))
+			match_bridge.set_pose_cam_active(not cur)
+		elif k.keycode == KEY_1:
+			match_bridge.set_lighting_theme(0)
+		elif k.keycode == KEY_2:
+			match_bridge.set_lighting_theme(1)
+		elif k.keycode == KEY_3:
+			match_bridge.set_lighting_theme(2)
+		elif k.keycode == KEY_F1 or k.keycode == KEY_R:
+			match_bridge.reset_match()
+			match_bridge.set_pose_cam_active(true)
+		elif k.keycode == KEY_F2:
+			apply_preset("sunset_pose")
+		elif k.keycode == KEY_F3:
+			apply_preset("neon_deuce")
+
 func _process(delta: float) -> void:
 	elapsed_time += delta
 	if match_bridge == null:
 		return
 
 	var mx := Input.get_axis("ui_left", "ui_right")
+	if Input.is_key_pressed(KEY_A):
+		mx -= 1.0
+	if Input.is_key_pressed(KEY_D):
+		mx += 1.0
+	mx = clampf(mx, -1.0, 1.0)
+
 	var my := Input.get_axis("ui_up", "ui_down")
+	if Input.is_key_pressed(KEY_W):
+		my -= 1.0
+	if Input.is_key_pressed(KEY_S):
+		my += 1.0
+	my = clampf(my, -1.0, 1.0)
+
+	var hold_a := Input.is_action_pressed("ui_accept") or Input.is_key_pressed(KEY_J) or Input.is_key_pressed(KEY_SPACE)
+	var hold_b := Input.is_key_pressed(KEY_K) or Input.is_key_pressed(KEY_Z)
+	var hold_l := Input.is_key_pressed(KEY_L) or Input.is_key_pressed(KEY_X)
+
+	var btn_a := (hold_a and not prev_j) or Input.is_action_just_pressed("ui_accept")
+	var btn_b := hold_b and not prev_k
+	var btn_switch := hold_l and not prev_l
+
+	prev_j = hold_a
+	prev_k = hold_b
+	prev_l = hold_l
+
 	var p0_in := {
 		"mx": mx,
 		"my": my,
-		"btn_a": Input.is_action_just_pressed("ui_accept"),
-		"btn_b": Input.is_action_just_pressed("ui_select"),
-		"hold_a": Input.is_action_pressed("ui_accept"),
-		"hold_b": Input.is_action_pressed("ui_select"),
-		"btn_switch": false,
+		"btn_a": btn_a,
+		"btn_b": btn_b,
+		"hold_a": hold_a,
+		"hold_b": hold_b,
+		"btn_switch": btn_switch,
 		"turbo": Input.is_key_pressed(KEY_SHIFT)
 	}
 	match_bridge.step_frame(delta, p0_in)
@@ -524,3 +574,9 @@ func _draw_hud(canvas: Node2D) -> void:
 		canvas.draw_circle(mid + Vector2(18.0, -8.0) + dbr * 1.5, 5.0, Color(1.0, 0.72, 0.30))
 		canvas.draw_circle(mid + Vector2(-14.0, 12.0) + dhl * 1.5, 4.5, Color(0.17, 0.90, 1.0))
 		canvas.draw_circle(mid + Vector2(14.0, 12.0) + dhr * 1.5, 4.5, Color(0.20, 0.83, 0.60))
+
+	# 7. Bottom Controls Legend Bar
+	canvas.draw_rect(Rect2(140.0, 686.0, 1000.0, 26.0), Color(0.03, 0.06, 0.12, 0.86), true)
+	canvas.draw_rect(Rect2(140.0, 686.0, 1000.0, 26.0), Color(0.17, 0.90, 1.0, 0.35), false, 1.0)
+	canvas.draw_string(font, Vector2(158.0, 703.0), "[WASD/ARROWS] Move   [J / SPACE] Toss / Serve / Dig   [K / Z] Jump-Spike / Dive   [L] Partner Tactic   [P] Studio Cam   [1/2/3] Theme   [F1/F2/F3] Live / Presets", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.84, 0.92, 0.98))
+
