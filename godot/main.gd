@@ -295,10 +295,10 @@ func _ready() -> void:
 
 	# Load Venice-generated BGM, SFX, and TTS voice clips
 	for aname in AUDIO_FILES:
-		var is_bgm := (aname == "bgm_sunbreak")
-		var clip := _load_wav_stream("res://assets/audio/%s.wav" % aname, is_bgm)
+		var is_bgm: bool = (String(aname) == "bgm_sunbreak")
+		var clip := _load_wav_stream("res://assets/audio/%s.wav" % String(aname), is_bgm)
 		if clip != null:
-			audio_clips[aname] = clip
+			audio_clips[String(aname)] = clip
 
 	bgm_player = AudioStreamPlayer.new()
 	bgm_player.name = "BgmPlayer"
