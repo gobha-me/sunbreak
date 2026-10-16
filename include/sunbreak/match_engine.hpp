@@ -419,12 +419,25 @@ class SunbreakEngine {
     return cut_in_label_;
   }
   [[nodiscard]] auto demo_freeze() const -> bool { return demo_freeze_; }
+  [[nodiscard]] auto attract_mode() const -> bool { return attract_mode_; }
+  [[nodiscard]] auto hit_stop_timer() const -> double {
+    return hit_stop_timer_;
+  }
+  [[nodiscard]] auto screen_shake() const -> double { return screen_shake_; }
+  [[nodiscard]] auto last_sfx() const -> const std::string& {
+    return last_sfx_;
+  }
+  [[nodiscard]] auto last_vo() const -> const std::string& { return last_vo_; }
+  [[nodiscard]] auto audio_seq() const -> int { return audio_seq_; }
 
   void set_score(int left_score, int right_score);
   void set_wind(int knots, double wind_accel_x, std::string label);
   void set_physics_preset(PhysicsPreset preset) { physics_preset_ = preset; }
   void set_lighting_theme(LightingTheme theme) { lighting_theme_ = theme; }
   void set_pose_cam_active(bool active) { pose_cam_active_ = active; }
+  void set_attract_mode(bool enabled);
+  void set_slot_roster(std::uint8_t slot, std::uint8_t roster_index);
+  void emit_audio(std::string_view sfx, std::string_view vo = "");
 
  private:
   void predict_ball_landing();
@@ -447,6 +460,7 @@ class SunbreakEngine {
   std::array<DefenseTactic, 2> defense_tactic_{DefenseTactic::BlockNet,
                                                DefenseTactic::PeelDeep};
   std::array<double, 2> tactic_flash_timer_{0.0, 0.0};
+  std::array<std::uint8_t, 4> roster_slots_{0, 1, 4, 5};
 
   RallyState rally_state_{RallyState::Serve};
   ServePhase serve_phase_{ServePhase::Ready};
@@ -467,10 +481,16 @@ class SunbreakEngine {
 
   PhysicsPreset physics_preset_{PhysicsPreset::Doax};
   LightingTheme lighting_theme_{LightingTheme::Sunset};
-  bool pose_cam_active_{true};
+  bool pose_cam_active_{false};
+  bool attract_mode_{false};
   double cut_in_timer_{0.0};
   std::string cut_in_label_{};
   bool demo_freeze_{false};
+  double hit_stop_timer_{0.0};
+  double screen_shake_{0.0};
+  std::string last_sfx_{};
+  std::string last_vo_{};
+  int audio_seq_{0};
 
   std::array<PlayerState, 4> players_{};
   BallState ball_{};

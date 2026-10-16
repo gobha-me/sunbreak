@@ -85,6 +85,14 @@ class SunbreakMatch final : public godot::RefCounted {
     engine_.set_physics_preset(static_cast<PhysicsPreset>(clamped));
   }
 
+  void set_attract_mode(bool enabled) { engine_.set_attract_mode(enabled); }
+
+  void set_slot_roster(std::int64_t slot, std::int64_t roster_idx) {
+    engine_.set_slot_roster(
+        static_cast<std::uint8_t>(std::clamp<std::int64_t>(slot, 0, 3)),
+        static_cast<std::uint8_t>(std::clamp<std::int64_t>(roster_idx, 0, 5)));
+  }
+
   void step_frame(double dt, const godot::Dictionary& p0_input) {
     std::array<PlayerInput, 4> inputs{};
     inputs.at(0).mx = static_cast<double>(p0_input.get("mx", 0.0));
@@ -133,6 +141,11 @@ class SunbreakMatch final : public godot::RefCounted {
     d["lighting_theme"] = static_cast<int>(engine_.lighting_theme());
     d["physics_preset"] = static_cast<int>(engine_.physics_preset());
     d["pose_cam_active"] = engine_.pose_cam_active();
+    d["attract_mode"] = engine_.attract_mode();
+    d["screen_shake"] = engine_.screen_shake();
+    d["audio_seq"] = engine_.audio_seq();
+    d["last_sfx"] = to_gd_str(engine_.last_sfx());
+    d["last_vo"] = to_gd_str(engine_.last_vo());
     d["cut_in_timer"] = engine_.cut_in_timer();
     d["cut_in_label"] = to_gd_str(engine_.cut_in_label());
 
@@ -165,6 +178,7 @@ class SunbreakMatch final : public godot::RefCounted {
       pd["slot"] = static_cast<int>(p.slot);
       pd["team"] = static_cast<int>(p.team);
       pd["roster_index"] = static_cast<int>(p.roster_index);
+      pd["is_ai"] = p.is_ai;
       pd["name"] = to_gd_str(prof.name);
       pd["title"] = to_gd_str(prof.title);
       pd["signature_move"] = to_gd_str(prof.signature_move);
@@ -277,6 +291,11 @@ class SunbreakMatch final : public godot::RefCounted {
     godot::ClassDB::bind_method(
         godot::D_METHOD("set_physics_preset", "preset_idx"),
         &SunbreakMatch::set_physics_preset);
+    godot::ClassDB::bind_method(godot::D_METHOD("set_attract_mode", "enabled"),
+                                &SunbreakMatch::set_attract_mode);
+    godot::ClassDB::bind_method(
+        godot::D_METHOD("set_slot_roster", "slot", "roster_idx"),
+        &SunbreakMatch::set_slot_roster);
     godot::ClassDB::bind_method(godot::D_METHOD("step_frame", "dt", "p0_input"),
                                 &SunbreakMatch::step_frame);
     godot::ClassDB::bind_method(godot::D_METHOD("get_snapshot"),

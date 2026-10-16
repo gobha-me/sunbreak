@@ -203,24 +203,49 @@ void SunbreakEngine::reset_match() {
   tactic_flash_timer_ = {0.0, 0.0};
   pose_cam_active_ = false;
   demo_freeze_ = false;
+  hit_stop_timer_ = 0.0;
+  screen_shake_ = 0.0;
   cut_in_timer_ = 0.0;
   cut_in_label_.clear();
   craters_.clear();
   callouts_.clear();
 
-  constexpr std::array<std::uint8_t, 4> kDefaultRoster{0, 1, 4, 5};
   for (std::uint8_t i = 0; i < 4; ++i) {
     auto& p = players_.at(i);
     p = PlayerState{};
     p.slot = i;
     p.team = i < 2 ? 0 : 1;
-    p.roster_index = kDefaultRoster.at(i);
-    p.is_ai = (i != 0);
+    p.roster_index = roster_slots_.at(i) % kRoster.size();
+    p.is_ai = attract_mode_ || (i != 0);
     p.is_partner_target = (i == 1);
     p.facing = p.team == 0 ? 1.0 : -1.0;
   }
 
   reset_serve(0);
+}
+
+void SunbreakEngine::set_attract_mode(bool enabled) {
+  attract_mode_ = enabled;
+  for (std::uint8_t i = 0; i < 4; ++i) {
+    players_.at(i).is_ai = attract_mode_ || (i != 0);
+  }
+}
+
+void SunbreakEngine::set_slot_roster(std::uint8_t slot,
+                                     std::uint8_t roster_index) {
+  if (slot >= 4) {
+    return;
+  }
+  const auto idx = static_cast<std::uint8_t>(roster_index % kRoster.size());
+  roster_slots_.at(slot) = idx;
+  players_.at(slot).roster_index = idx;
+  players_.at(slot).skeleton = evaluate_skeleton_pose(players_.at(slot));
+}
+
+void SunbreakEngine::emit_audio(std::string_view sfx, std::string_view vo) {
+  last_sfx_ = std::string(sfx);
+  last_vo_ = std::string(vo);
+  audio_seq_ += 1;
 }
 
 void SunbreakEngine::roll_beach_wind() {
@@ -271,6 +296,7 @@ void SunbreakEngine::reset_serve(std::uint8_t serving_team) {
 
   for (std::size_t i = 0; i < 4; ++i) {
     auto& p = players_.at(i);
+    p.roster_index = roster_slots_.at(i) % kRoster.size();
     p.x = kServeCoords.at(i).x;
     p.y = kServeCoords.at(i).y;
     p.z = 0.0;
@@ -290,7 +316,7 @@ void SunbreakEngine::reset_serve(std::uint8_t serving_team) {
     p.active_dig_timer = 0.0;
     p.facing = p.team == 0 ? 1.0 : -1.0;
     p.on_fire = team_on_fire_.at(p.team);
-    p.is_ai = (i != 0);
+    p.is_ai = attract_mode_ || (i != 0);
     p.is_partner_target = (i == 1);
     p.skeleton = evaluate_skeleton_pose(p);
   }
@@ -568,6 +594,7 @@ void SunbreakEngine::start_serve_toss(std::uint8_t slot, bool is_jump_serve) {
   p.action_state = ActionState::Set;
   p.action_timer = 0.28;
   apply_action_impulse(p, "set", 0.95);
+  emit_audio("sfx_set");
 }
 
 void SunbreakEngine::execute_serve_strike(std::uint8_t slot,
@@ -625,6 +652,8 @@ void SunbreakEngine::execute_serve_strike(std::uint8_t slot,
     ball_.on_fire_ball = true;
     cut_in_timer_ = 1.15;
     cut_in_label_ = "ON FIRE METEOR SERVE!";
+    screen_shake_ = 1.0;
+    emit_audio("sfx_fire_slam", "vo_on_fire");
     add_callout("ON FIRE METEOR SERVE!", p.x, p.y - 105.0, "#ff5500");
   } else if (is_jump) {
     if (is_sweet_spot) {
@@ -633,18 +662,22 @@ void SunbreakEngine::execute_serve_strike(std::uint8_t slot,
       ball_.vz = 112.0;
       ball_.topspin = 1.25;
       ball_.solar_spike = true;
+      screen_shake_ = 0.75;
+      emit_audio("sfx_spike", "vo_laser_serve");
       add_callout("SWEET SPOT! LASER SERVE!", p.x, p.y - 95.0, "#ff477e");
     } else if (is_overhit) {
       ball_.vx = dir * (525.0 + prof.power * 70.0);
       ball_.vy = aim_y * 1.3;
       ball_.vz = 175.0;
       ball_.topspin = 0.35;
+      emit_audio("sfx_spike");
       add_callout("OVERCHARGED! LONG!", p.x, p.y - 90.0, "#ffb84d");
     } else {
       ball_.vx = dir * (395.0 + charge * 75.0);
       ball_.vy = aim_y;
       ball_.vz = 152.0;
       ball_.topspin = 0.65;
+      emit_audio("sfx_spike");
       add_callout("JUMP TOPSPIN SERVE!", p.x, p.y - 88.0, "#ffb84d");
     }
   } else {
@@ -654,17 +687,20 @@ void SunbreakEngine::execute_serve_strike(std::uint8_t slot,
       ball_.vz = 195.0;
       ball_.knuckle = 1.0;
       ball_.knuckle_phase = 0.4;
+      emit_audio("sfx_dig");
       add_callout("KNUCKLE FLOAT SERVE!", p.x, p.y - 92.0, "#2ce6ff");
     } else if (is_short_drop) {
       ball_.vx = dir * (275.0 + charge * 90.0);
       ball_.vy = aim_y * 0.9;
       ball_.vz = 188.0;
       ball_.topspin = 0.45;
+      emit_audio("sfx_set");
       add_callout("SHORT DROP SERVE!", p.x, p.y - 88.0, "#34d399");
     } else {
       ball_.vx = dir * (340.0 + charge * 70.0);
       ball_.vy = aim_y;
       ball_.vz = 210.0;
+      emit_audio("sfx_dig");
     }
   }
 
@@ -703,12 +739,11 @@ auto SunbreakEngine::toggle_partner_tactic(std::uint8_t team) -> DefenseTactic {
                                 ? DefenseTactic::PeelDeep
                                 : DefenseTactic::BlockNet;
   tactic_flash_timer_.at(idx) = 1.65;
-  add_callout(defense_tactic_.at(idx) == DefenseTactic::BlockNet
-                  ? "PARTNER: BLOCK NET!"
-                  : "PARTNER: PEEL DEEP!",
+  const bool is_block = (defense_tactic_.at(idx) == DefenseTactic::BlockNet);
+  emit_audio("sfx_set", is_block ? "vo_partner_block" : "vo_partner_peel");
+  add_callout(is_block ? "PARTNER: BLOCK NET!" : "PARTNER: PEEL DEEP!",
               team == 0 ? 460.0 : 820.0, 290.0,
-              defense_tactic_.at(idx) == DefenseTactic::BlockNet ? "#ffb84d"
-                                                                 : "#2ce6ff");
+              is_block ? "#ffb84d" : "#2ce6ff");
   return defense_tactic_.at(idx);
 }
 
@@ -899,6 +934,7 @@ void SunbreakEngine::handle_ball_contact(PlayerState& p,
   // opponent's ON FIRE streak!
   const bool is_counter_play =
       (p.dive_lock_timer > 0.0 || p.active_dig_timer > 0.0 || is_net_block);
+  bool extinguished_fire = false;
   if ((ball_.on_fire_ball || team_on_fire_.at(opp_team)) &&
       (touch_count_ <= 1 || is_net_block) && is_counter_play) {
     team_on_fire_.at(opp_team) = false;
@@ -911,6 +947,9 @@ void SunbreakEngine::handle_ball_contact(PlayerState& p,
       }
     }
     solar_meter_.at(team) = std::min(100.0, solar_meter_.at(team) + 40.0);
+    extinguished_fire = true;
+    hit_stop_timer_ = 0.05;
+    screen_shake_ = 0.85;
     add_callout(is_net_block ? "FIRE EXTINGUISHED! ROOF BLOCK!"
                              : "FIRE EXTINGUISHED! COUNTER SAVE!",
                 p.x, p.y - 95.0, "#2ce6ff");
@@ -929,6 +968,10 @@ void SunbreakEngine::handle_ball_contact(PlayerState& p,
     ball_.topspin = 1.1;
     p.action_state = ActionState::SpikeFollow;
     p.action_timer = 0.34;
+    hit_stop_timer_ = 0.05;
+    screen_shake_ = 0.85;
+    emit_audio("sfx_block",
+               extinguished_fire ? "vo_fire_extinguished" : "vo_monster_block");
     apply_action_impulse(p, "spike", 1.35);
     add_callout("MONSTER ROOF BLOCK!", p.x, p.y - 88.0, "#34d399");
   } else if (touch_count_ == 1) {
@@ -944,6 +987,7 @@ void SunbreakEngine::handle_ball_contact(PlayerState& p,
       p.action_timer = 0.32;
       apply_action_impulse(p, "dig", 1.1);
     }
+    emit_audio("sfx_dig", extinguished_fire ? "vo_fire_extinguished" : "");
     solar_meter_.at(team) = std::min(100.0, solar_meter_.at(team) + 14.0);
   } else if (touch_count_ == 2 && p.z < 18.0) {
     // 2nd Touch: High Overhead Alley-Oop Set for partner's spike!
@@ -958,13 +1002,17 @@ void SunbreakEngine::handle_ball_contact(PlayerState& p,
       p.action_timer = 0.36;
       apply_action_impulse(p, "set", 1.15);
     }
+    emit_audio("sfx_set");
     solar_meter_.at(team) = std::min(100.0, solar_meter_.at(team) + 16.0);
   } else {
-    // 3rd Touch or Airborne Attack: Spike / Cut-Shot over the net!
+    // 3rd Touch or Airborne Attack: Spike / Cut-Shot / Dink over the net!
     const double dir = is_left ? 1.0 : -1.0;
     const bool airborne = (p.z > 14.0);
+    // Holding Back (away from net) while airborne executes a tactical Short
+    // Cut-Shot / Tip Dink over the blocker!
+    const bool want_dink = airborne && (input.mx * dir < -0.35);
     const bool use_solar =
-        airborne && (solar_meter_.at(team) >= 100.0 || p.on_fire);
+        airborne && !want_dink && (solar_meter_.at(team) >= 100.0 || p.on_fire);
     if (use_solar) {
       if (!p.on_fire) {
         solar_meter_.at(team) = 0.0;
@@ -977,19 +1025,34 @@ void SunbreakEngine::handle_ball_contact(PlayerState& p,
       ball_.on_fire_ball = p.on_fire;
       cut_in_timer_ = 1.1;
       cut_in_label_ = p.on_fire ? "ON FIRE SLAM!" : "SOLAR OVERDRIVE SPIKE!";
+      hit_stop_timer_ = 0.06;
+      screen_shake_ = 1.0;
+      emit_audio("sfx_fire_slam", p.on_fire ? "vo_on_fire" : "vo_solar_spike");
       add_callout(p.on_fire ? "BOOMSHAKALAKA! ON FIRE SLAM!"
                             : "SOLAR OVERDRIVE SPIKE!",
                   p.x, p.y - 98.0, "#ff5500");
+    } else if (want_dink) {
+      ball_.vx = dir * (195.0 + prof.control * 35.0);
+      ball_.vy = input.my * 140.0;
+      ball_.vz = 148.0;
+      ball_.topspin = 0.35;
+      emit_audio("sfx_set");
+      add_callout("VELVET DROP DINK!", p.x, p.y - 84.0, "#34d399");
     } else if (airborne) {
-      ball_.vx = dir * (435.0 + prof.power * 55.0);
-      ball_.vy = input.my * 120.0;
+      const double drive_boost = (input.mx * dir > 0.35) ? 45.0 : 0.0;
+      ball_.vx = dir * (435.0 + prof.power * 55.0 + drive_boost);
+      ball_.vy = input.my * 130.0;
       ball_.vz = -110.0;
       ball_.topspin = 0.95;
+      hit_stop_timer_ = 0.04;
+      screen_shake_ = 0.65;
+      emit_audio("sfx_spike");
       add_callout("POWER SPIKE!", p.x, p.y - 84.0, "#ffb84d");
     } else {
       ball_.vx = dir * 325.0;
       ball_.vy = input.my * 95.0;
       ball_.vz = 215.0;
+      emit_audio("sfx_dig");
     }
     if (p.dive_lock_timer <= 0.0) {
       p.action_state = airborne ? ActionState::SpikeFollow : ActionState::Set;
@@ -1013,18 +1076,21 @@ void SunbreakEngine::score_point(std::uint8_t winning_team,
   // Standard 15-Point Beach Volleyball Set (Win by 2)
   const bool match_won = score_.at(win_idx) >= 15 &&
                          (score_.at(win_idx) - score_.at(lose_idx)) >= 2;
+  std::string vo_clip{};
   if (match_won) {
     cut_in_timer_ = 2.4;
-    cut_in_label_ =
-        win_idx == 0 ? "KASUMI & ELENA WIN SET!" : "NYX & FREYA WIN SET!";
-    add_callout(win_idx == 0 ? "MATCH POINT! KASUMI & ELENA WIN SET!"
-                             : "MATCH POINT! NYX & FREYA WIN SET!",
+    cut_in_label_ = win_idx == 0 ? "LEFT DUO WINS SET!" : "RIGHT DUO WINS SET!";
+    vo_clip = "vo_match_won";
+    add_callout(win_idx == 0 ? "MATCH POINT! LEFT DUO WINS SET!"
+                             : "MATCH POINT! RIGHT DUO WINS SET!",
                 kCourtNetX, 225.0, "#ff477e");
   } else if (streak_.at(win_idx) >= 3) {
     team_on_fire_.at(win_idx) = true;
     solar_meter_.at(win_idx) = 100.0;
+    vo_clip = "vo_on_fire";
     add_callout("HEATING UP! TEAM IS ON FIRE!", kCourtNetX, 240.0, "#ff5500");
   } else if (streak_.at(win_idx) == 2) {
+    vo_clip = "vo_heating_up";
     add_callout("HEATING UP! (2 IN A ROW)", kCourtNetX, 248.0, "#ffb84d");
   } else {
     add_callout(std::string(reason), kCourtNetX, 255.0, "#2ce6ff");
@@ -1033,8 +1099,11 @@ void SunbreakEngine::score_point(std::uint8_t winning_team,
   if (!match_won && is_deuce()) {
     solar_meter_.at(0) = std::min(100.0, solar_meter_.at(0) + 25.0);
     solar_meter_.at(1) = std::min(100.0, solar_meter_.at(1) + 25.0);
+    vo_clip = "vo_deuce";
     add_callout("DEUCE! WIN BY 2!", kCourtNetX, 215.0, "#ffb84d");
   }
+
+  emit_audio("sfx_whistle", vo_clip);
 
   for (auto& p : players_) {
     p.on_fire = team_on_fire_.at(p.team);
@@ -1063,6 +1132,18 @@ void SunbreakEngine::add_callout(std::string text, double x, double y,
 
 void SunbreakEngine::step(double dt,
                           const std::array<PlayerInput, 4>& raw_inputs) {
+  if (screen_shake_ > 0.0) {
+    screen_shake_ = std::max(0.0, screen_shake_ - dt * 4.2);
+  }
+  if (hit_stop_timer_ > 0.0) {
+    hit_stop_timer_ = std::max(0.0, hit_stop_timer_ - dt);
+    for (auto& p : players_) {
+      step_soft_body(p, dt * 0.35);
+      p.skeleton = evaluate_skeleton_pose(p);
+    }
+    return;
+  }
+
   if (demo_freeze_) {
     for (auto& p : players_) {
       step_soft_body(p, dt);
@@ -1271,6 +1352,7 @@ void SunbreakEngine::step(double dt,
             p.dive_lock_timer = 0.46;
             p.action_state = ActionState::Dive;
             p.action_timer = 0.46;
+            emit_audio("sfx_dive");
             apply_action_impulse(p, "dive", 1.45);
             add_crater(p.x, p.y, 28.0);
           } else if (want_counter_dig) {
@@ -1433,6 +1515,7 @@ void SunbreakEngine::step(double dt,
         ball_.curve_y = 0.0;
         ball_.knuckle = 0.0;
         ball_.impact_squash = 0.7;
+        emit_audio("sfx_sand_bounce");
         add_callout("NET CORD TRICKLE!", kCourtNetX, ball_.y - 75.0, "#ffb84d");
         predict_ball_landing();
       } else {
