@@ -998,17 +998,17 @@ func _draw_hud(canvas: Node2D) -> void:
 		var title_txt := "SUNBREAK // BEACH VOLLEYBALL — MAIN MENU" if ui_mode == UiMode.TITLE else "MATCH PAUSED // TACTICAL & STUDIO OPTIONS"
 		canvas.draw_string(font, Vector2(336.0, 165.0), title_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color(1.0, 0.76, 0.32))
 
-		var cur_theme := THEME_NAMES[int(last_snapshot.get("lighting_theme", 0)) % 3]
-		var cur_phys := PHYS_NAMES[int(last_snapshot.get("physics_preset", 1)) % 3]
-		var items := []
+		var cur_theme: String = String(THEME_NAMES[int(last_snapshot.get("lighting_theme", 0)) % 3])
+		var cur_phys: String = String(PHYS_NAMES[int(last_snapshot.get("physics_preset", 1)) % 3])
+		var items: Array[String] = []
 		var active_cursor := title_cursor if ui_mode == UiMode.TITLE else pause_cursor
 
 		if ui_mode == UiMode.TITLE:
 			items = [
 				"▶  PLAY 1P + PARTNER vs CPU  (15-PT SET)",
 				"▶  WATCH 4x AI ATTRACT EXHIBITION  (IDLE SPECTATOR)",
-				"◀  P1 ATHLETE:  %s  ▶" % ROSTER_NAMES[selected_p1_roster],
-				"◀  PARTNER AI:  %s  ▶" % ROSTER_NAMES[selected_p2_roster],
+				"◀  P1 ATHLETE:  %s  ▶" % String(ROSTER_NAMES[selected_p1_roster]),
+				"◀  PARTNER AI:  %s  ▶" % String(ROSTER_NAMES[selected_p2_roster]),
 				"◀  LIGHTING THEME:  %s  ▶" % cur_theme,
 				"◀  SOFT-BODY RIG:  %s  ▶" % cur_phys
 			]
