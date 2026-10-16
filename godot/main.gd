@@ -437,6 +437,13 @@ func _process(delta: float) -> void:
 		mx -= 1.0
 	if Input.is_key_pressed(KEY_D):
 		mx += 1.0
+	var joy_x := Input.get_joy_axis(0, JOY_AXIS_LEFT_X)
+	if absf(joy_x) > 0.18:
+		mx += joy_x
+	if Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_LEFT):
+		mx -= 1.0
+	if Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_RIGHT):
+		mx += 1.0
 	mx = clampf(mx, -1.0, 1.0)
 
 	var my := Input.get_axis("ui_up", "ui_down")
@@ -444,17 +451,25 @@ func _process(delta: float) -> void:
 		my -= 1.0
 	if Input.is_key_pressed(KEY_S):
 		my += 1.0
+	var joy_y := Input.get_joy_axis(0, JOY_AXIS_LEFT_Y)
+	if absf(joy_y) > 0.18:
+		my += joy_y
+	if Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_UP):
+		my -= 1.0
+	if Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_DOWN):
+		my += 1.0
 	my = clampf(my, -1.0, 1.0)
 
-	# Ergonomic QWERTY Right-Hand Home Row:
-	# [J / Space] = Serve / Pass / Set / Dig
-	# [K]         = Jump-Spike / Jump-Block (4-Stage Jump Chain)
-	# [L]         = Diving Save (Horizontal Layout Dive)
-	# [; / Tab]   = Partner Tactic (BLOCK NET <-> PEEL DEEP)
-	var hold_a := Input.is_key_pressed(KEY_J) or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_Z)
-	var hold_b := Input.is_key_pressed(KEY_K) or Input.is_key_pressed(KEY_X)
-	var hold_dive := Input.is_key_pressed(KEY_L) or Input.is_key_pressed(KEY_C)
-	var hold_sw := Input.is_key_pressed(KEY_SEMICOLON) or Input.is_key_pressed(KEY_TAB) or Input.is_key_pressed(KEY_U)
+	# Ergonomic QWERTY Right-Hand Home Row + Gamepad / Controller:
+	# [J / Space / Pad A] = Serve / Pass / Set / Dig
+	# [K / Pad X or Y]    = Jump-Spike / Jump-Block (4-Stage Jump Chain)
+	# [L / Pad B]         = Diving Save (Horizontal Layout Dive)
+	# [; / Tab / Pad LB]  = Partner Tactic (BLOCK NET <-> PEEL DEEP)
+	var hold_a := Input.is_key_pressed(KEY_J) or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_Z) or Input.is_joy_button_pressed(0, JOY_BUTTON_A)
+	var hold_b := Input.is_key_pressed(KEY_K) or Input.is_key_pressed(KEY_X) or Input.is_joy_button_pressed(0, JOY_BUTTON_X) or Input.is_joy_button_pressed(0, JOY_BUTTON_Y)
+	var hold_dive := Input.is_key_pressed(KEY_L) or Input.is_key_pressed(KEY_C) or Input.is_joy_button_pressed(0, JOY_BUTTON_B)
+	var hold_sw := Input.is_key_pressed(KEY_SEMICOLON) or Input.is_key_pressed(KEY_TAB) or Input.is_key_pressed(KEY_U) or Input.is_joy_button_pressed(0, JOY_BUTTON_LEFT_SHOULDER)
+	var hold_turbo := Input.is_key_pressed(KEY_SHIFT) or Input.is_joy_button_pressed(0, JOY_BUTTON_RIGHT_SHOULDER) or (Input.get_joy_axis(0, JOY_AXIS_TRIGGER_RIGHT) > 0.35)
 
 	var btn_a := hold_a and not prev_j
 	var btn_b := hold_b and not prev_k
@@ -475,7 +490,7 @@ func _process(delta: float) -> void:
 		"hold_a": hold_a,
 		"hold_b": hold_b,
 		"btn_switch": btn_switch,
-		"turbo": Input.is_key_pressed(KEY_SHIFT)
+		"turbo": hold_turbo
 	}
 	match_bridge.step_frame(delta, p0_in)
 	apply_snapshot(match_bridge.get_snapshot())
@@ -499,7 +514,7 @@ func _draw_hud(canvas: Node2D) -> void:
 	canvas.draw_rect(Rect2(net_x - 8.0, net_top_y - 8.0, 16.0, 12.0), Color(1.0, 0.28, 0.49), true)
 	canvas.draw_rect(Rect2(net_x - 8.0, net_bot_y - 12.0, 16.0, 16.0), Color(1.0, 0.28, 0.49), true)
 
-	# 2. Ball Landing Target Reticle on Sand
+	# 2. Ball Landing Target Reticle on Sand (at playable waist/arm reception height)
 	var b: Dictionary = last_snapshot.get("ball", {})
 	var landing: Vector2 = b.get("landing", Vector2(640.0, 480.0))
 	var ret_col := Color(1.0, 0.33, 0.0) if bool(b.get("on_fire_ball", false)) else Color(0.17, 0.90, 1.0)
@@ -509,7 +524,7 @@ func _draw_hud(canvas: Node2D) -> void:
 
 	# 3. Top Scoreboard & Deuce / Trade-Wind Broadcast Pill
 	canvas.draw_rect(Rect2(0.0, 0.0, 1280.0, 52.0), Color(0.03, 0.05, 0.10, 0.92), true)
-	canvas.draw_string(font, Vector2(24.0, 32.0), "SUNBREAK // V'BALL (GODOT 4.7.2 + C++23)", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.72, 0.30))
+	canvas.draw_string(font, Vector2(24.0, 32.0), "SUNBREAK // V'BALL (15-PT SET • WIN BY 2)", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.72, 0.30))
 
 	var s_l := int(last_snapshot.get("score_left", 0))
 	var s_r := int(last_snapshot.get("score_right", 0))
@@ -517,7 +532,7 @@ func _draw_hud(canvas: Node2D) -> void:
 	canvas.draw_string(font, Vector2(465.0, 32.0), score_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.95, 0.98, 1.0))
 
 	var wind_lbl := String(last_snapshot.get("wind_label", "12 KT -> E"))
-	var tac_l := "BLOCK NET [L]" if String(last_snapshot.get("tactic_left", "block")) == "block" else "PEEL DEEP [L]"
+	var tac_l := "BLOCK NET [;]" if String(last_snapshot.get("tactic_left", "block")) == "block" else "PEEL DEEP [;]"
 	var is_deuce := bool(last_snapshot.get("is_deuce", false))
 	var pill_str := "WIND: %s  |  PARTNER: %s%s" % [wind_lbl, tac_l, "  |  DEUCE (WIN BY 2)" if is_deuce else ""]
 	canvas.draw_rect(Rect2(430.0, 62.0, 405.0, 26.0), Color(0.04, 0.07, 0.14, 0.86), true)
@@ -542,7 +557,7 @@ func _draw_hud(canvas: Node2D) -> void:
 		canvas.draw_string(font, Vector2(px - 48.0, sy - 3.0), tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, ncol)
 
 		if i == 1 or i == 2:
-			var t_str := "BLOCK NET [L]" if i == 1 else "PEEL DEEP"
+			var t_str := ("BLOCK NET [;]" if String(last_snapshot.get("tactic_left", "block")) == "block" else "PEEL DEEP [;]") if i == 1 else "PEEL DEEP"
 			var t_col := Color(1.0, 0.72, 0.30) if i == 1 else Color(0.17, 0.90, 1.0)
 			canvas.draw_rect(Rect2(px - 44.0, sy + 5.0, 88.0, 15.0), Color(0.03, 0.05, 0.10, 0.86), true)
 			canvas.draw_string(font, Vector2(px - 38.0, sy + 16.0), t_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, t_col)
@@ -610,8 +625,8 @@ func _draw_hud(canvas: Node2D) -> void:
 		canvas.draw_circle(mid + Vector2(14.0, 12.0) + dhr * 1.5, 4.5, Color(0.20, 0.83, 0.60))
 
 	# 7. Bottom Controls Legend Bar
-	canvas.draw_rect(Rect2(130.0, 686.0, 1020.0, 26.0), Color(0.03, 0.06, 0.12, 0.86), true)
-	canvas.draw_rect(Rect2(130.0, 686.0, 1020.0, 26.0), Color(0.17, 0.90, 1.0, 0.35), false, 1.0)
-	canvas.draw_string(font, Vector2(146.0, 703.0), "[WASD] Move   [J / SPACE] Jump-Serve / Pass / Dig   [K] Jump-Spike / Block   [L] Dive   [; / TAB] Partner Tactic   [P] Studio Cam   [1/2/3] Theme   [F1/F2/F3] Mode", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.84, 0.92, 0.98))
+	canvas.draw_rect(Rect2(90.0, 686.0, 1100.0, 26.0), Color(0.03, 0.06, 0.12, 0.86), true)
+	canvas.draw_rect(Rect2(90.0, 686.0, 1100.0, 26.0), Color(0.17, 0.90, 1.0, 0.35), false, 1.0)
+	canvas.draw_string(font, Vector2(106.0, 703.0), "[WASD/Stick] Move   [J/Space/Pad-A] Serve/Pass/Set   [K/Pad-X] Jump-Spike/Block   [L/Pad-B] Dive   [;/Tab/LB] Tactic   [P] Studio   [1/2/3] Theme", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.84, 0.92, 0.98))
 
 
