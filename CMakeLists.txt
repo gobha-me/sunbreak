@@ -38,9 +38,12 @@ if(SUNBREAK_BUILD_GODOT_BRIDGE)
       CACHE PATH "Godot minimal binding profile" FORCE)
   set(GODOTCPP_DISABLE_EXCEPTIONS OFF CACHE BOOL "Allow C++ boundary error handling" FORCE)
 
-  if(EXISTS "/config/Projects/apsis-drift/build/_deps/godot_cpp-src/CMakeLists.txt")
+  set(SUNBREAK_GODOT_CPP_SOURCE_DIR "" CACHE PATH
+      "Optional local checkout of godot-cpp to avoid network fetch")
+  if(NOT "${SUNBREAK_GODOT_CPP_SOURCE_DIR}" STREQUAL "" AND
+     EXISTS "${SUNBREAK_GODOT_CPP_SOURCE_DIR}/CMakeLists.txt")
     FetchContent_Declare(godot_cpp
-      SOURCE_DIR "/config/Projects/apsis-drift/build/_deps/godot_cpp-src"
+      SOURCE_DIR "${SUNBREAK_GODOT_CPP_SOURCE_DIR}"
       EXCLUDE_FROM_ALL
     )
   else()

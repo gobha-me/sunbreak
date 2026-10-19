@@ -19,14 +19,19 @@ func _run_contracts() -> void:
 	sub_vp.transparent_bg = false
 	root.add_child(sub_vp)
 
+	var main_script: Script = load("res://main.gd")
+	_require(main_script != null and main_script.can_instantiate(), "Failed to compile/load res://main.gd")
+
 	var main_scene: PackedScene = load("res://main.tscn")
 	_require(main_scene != null, "Failed to load res://main.tscn")
 	var inst := main_scene.instantiate()
+	_require(inst != null and inst.get("athlete_rigs") != null, "Failed to instantiate main.gd on root node")
 	sub_vp.add_child(inst)
 	for _i in range(4):
 		await process_frame
 
 	_require(inst.athlete_rigs.size() == 4, "Expected 4 on-court AthleteRig2D instances")
+	_require(inst.audio_clips.size() == 20, "Expected all 20 Venice BGM/SFX/TTS WAV clips loaded")
 	var required_bones := ["Hip", "Torso", "Head", "Arm", "HandSocket", "Thigh", "Shin", "Foot"]
 	for i in range(4):
 		var rig: Dictionary = inst.athlete_rigs[i]
@@ -37,6 +42,15 @@ func _run_contracts() -> void:
 		_require(poly.get_bone_count() == 8, "Expected 8 weighted bones on Polygon2D for AthleteRig_%d" % i)
 		for bname in required_bones:
 			_require(rig["bones"].has(bname), "Missing Bone2D %s on AthleteRig_%d" % [bname, i])
+
+	# Verify Attract Mode & Roster Selection via GDExtension bridge
+	bridge.set_attract_mode(true)
+	bridge.set_slot_roster(0, 2)
+	var snap_attract: Dictionary = bridge.get_snapshot()
+	_require(bool(snap_attract.get("attract_mode", false)), "Expected attract_mode == true on snapshot")
+	_require(String(snap_attract["players"][0]["name"]) == "MEI-LIN", "Expected slot 0 roster MEI-LIN")
+	bridge.set_attract_mode(false)
+	bridge.set_slot_roster(0, 0)
 
 	# Verify 4-Stage Keyframed Jump Chain (`Stand -> Squat -> Stand Arms-Up -> In-Air`) via GDExtension bridge
 	bridge.reset_match()
