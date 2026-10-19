@@ -186,6 +186,90 @@ void test_partner_tactics_and_deuce_state() {
                "15-14 must report Team 0 on Match Point");
 }
 
+void test_attract_mode_and_roster_selection() {
+  sunbreak::SunbreakEngine eng;
+  eng.reset_match();
+  require_true(!eng.attract_mode(), "Attract mode must default to false");
+  require_true(!eng.players().at(0).is_ai, "Slot 0 must default to human");
+
+  eng.set_attract_mode(true);
+  require_true(eng.attract_mode(), "Expected attract_mode() == true");
+  for (std::size_t i = 0; i < 4U; ++i) {
+    require_true(eng.players().at(i).is_ai,
+                 "All 4 athletes must be AI-driven in attract mode");
+  }
+
+  eng.set_slot_roster(0, 2); // MEI-LIN
+  eng.set_slot_roster(1, 3); // AYANE
+  require_true(eng.players().at(0).roster_index == 2U,
+               "Expected slot 0 roster_index == 2 (MEI-LIN)");
+  require_true(eng.players().at(1).roster_index == 3U,
+               "Expected slot 1 roster_index == 3 (AYANE)");
+}
+
+void test_velvet_drop_dink_and_set_victory_audio_cues() {
+  sunbreak::SunbreakEngine eng;
+  eng.reset_match();
+
+  const int initial_seq = eng.audio_seq();
+  eng.reset_serve(1);
+  eng.start_serve_toss(2, true);
+  sunbreak::PlayerInput srv_in{};
+  eng.execute_serve_strike(2, srv_in, 0.84);
+  require_true(eng.audio_seq() > initial_seq,
+               "Sweet-Spot Jump Serve must increment audio_seq");
+  require_true(eng.last_sfx() == "sfx_spike",
+               "Expected sfx_spike on Sweet-Spot Jump Serve");
+  require_true(eng.last_vo() == "vo_laser_serve",
+               "Expected vo_laser_serve on Sweet-Spot Jump Serve");
+
+  // 1st Touch on Team 0: Partner (slot 1) receives the serve
+  auto& p1 = eng.players_mut().at(1);
+  p1.x = 340.0;
+  p1.y = 460.0;
+  p1.z = 0.0;
+  const sunbreak::Vec3 hs1 = eng.hand_socket_world(p1, sunbreak::PoseId::Dig);
+  auto& b = eng.ball_mut();
+  b.x = hs1.x;
+  b.y = hs1.y;
+  b.z = hs1.z;
+  b.vx = -220.0;
+  b.vy = 0.0;
+  b.vz = -20.0;
+
+  std::array<sunbreak::PlayerInput, 4> inputs{};
+  eng.step(0.016, inputs);
+  require_true(eng.last_sfx() == "sfx_dig",
+               "Expected sfx_dig on Partner 1st touch reception");
+
+  // 2nd Touch Airborne Attack on Team 0: P0 (slot 0) jumps at the net holding
+  // Back (`mx = -1.0`) for a Velvet Drop Dink over the blockers
+  auto& p0 = eng.players_mut().at(0);
+  p0.x = 560.0;
+  p0.y = 460.0;
+  p0.z = 72.0;
+  p0.vz = 10.0;
+  p0.action_state = sunbreak::ActionState::Spike;
+  p0.active_pose = sunbreak::PoseId::Spike;
+
+  const sunbreak::Vec3 hs0 = eng.hand_socket_world(p0, sunbreak::PoseId::Spike);
+  b.x = hs0.x;
+  b.y = hs0.y;
+  b.z = hs0.z;
+  b.vx = 40.0;
+  b.vy = 0.0;
+  b.vz = -10.0;
+
+  inputs.at(0).mx = -1.0; // Hold Back away from net -> Velvet Drop Dink
+  inputs.at(0).btn_b = true;
+  eng.step(0.016, inputs);
+
+  require_true(eng.ball().vx > 150.0 && eng.ball().vx < 260.0,
+               "Velvet Drop Dink must feather ball gently over net");
+  require_true(eng.last_sfx() == "sfx_set",
+               "Velvet Drop Dink must trigger soft sfx_set audio cue");
+}
+
 } // namespace
 
 auto main() -> int {
@@ -195,6 +279,8 @@ auto main() -> int {
   test_backcourt_reception_never_jumps();
   test_counter_play_extinguishes_on_fire();
   test_partner_tactics_and_deuce_state();
+  test_attract_mode_and_roster_selection();
+  test_velvet_drop_dink_and_set_victory_audio_cues();
   std::cout
       << "SUNBREAK C++23 MATCH ENGINE CONTRACT SUITE: ALL CHECKS PASSED\n";
   return 0;
